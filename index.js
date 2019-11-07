@@ -24,40 +24,43 @@ client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`)
 })
 
-client.on('message', msg => {
+client.on('message', async msg => {
   var chars = db.getData("/chars");
+  if(msg.channel.name === 'chars'){
+    if (msg.content.toLowerCase().includes('!set')) {
+      let [command, char, labor] = msg.content.split(' ');
+      char = char[0].toUpperCase()+ char.slice(1).toLowerCase();
 
-  if (msg.content.toLowerCase().includes('!set')) {
-    let [command, char, labor] = msg.content.split(' ');
-    char = char[0].toUpperCase()+ char.slice(1).toLowerCase();
+      if(labor < 0 ){
+        labor = 0;
+      }
 
-    if(labor < 0 ){
-      labor = 0;
+      chars[char].labor = labor;
+      chars[char].date = moment();
+      db.push('/chars', chars);
+      await msg.channel.bulkDelete(10);
+      msg.reply(`Saved!`).then(msg => {
+        msg.delete(1000);
+      });
     }
+    if(msg.content === '!status'){
+      const embed = new Discord.RichEmbed()
+          .setTitle("Character summary")
+          .setColor(0x00AE86)
 
-    chars[char].labor = labor;
-    chars[char].date = moment();
-    db.push('/chars', chars);
+      Object.keys(chars).forEach(char => {
+        var diffMins =   moment().diff(chars[char].date, 'minutes')
 
-    msg.reply(`Saved!`);
-  }
-  if(msg.content === '!status'){
-    const embed = new Discord.RichEmbed()
-        .setTitle("Character summary")
-        .setColor(0x00AE86)
+        var accumulatedIterations = Math.round(diffMins / 5);
 
-    Object.keys(chars).forEach(char => {
-      var diffMins =   moment().diff(chars[char].date, 'minutes')
+        var accumulatedLabor =  parseInt(chars[char].labor) + (10 * accumulatedIterations);
 
-      var accumulatedIterations = Math.round(diffMins / 5);
-
-      var accumulatedLabor =  parseInt(chars[char].labor) + (10 * accumulatedIterations);
-
-      accumulatedLabor = accumulatedLabor > 5000  ? 5000 : accumulatedLabor;
-      embed.addField(char, `Generated Labor: ${accumulatedLabor}`, true)
-    })
-
-    msg.reply({embed});
+        accumulatedLabor = accumulatedLabor > 5000  ? 5000 : accumulatedLabor;
+        embed.addField(char, `Generated Labor: ${accumulatedLabor}`, true)
+      })
+      await msg.channel.bulkDelete(10);
+      msg.reply({embed});
+    }
   }
 })
 
