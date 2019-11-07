@@ -12,7 +12,9 @@
   "dependencies": {
     "discord.js": "^11.5.1",
     "dotenv": "^8.2.0",
+    "lodash": "^4.17.15",
     "moment": "^2.24.0",
-    "node-json-db": "^1.0.2"
+    "node-json-db": "^1.0.2",
+    "pg": "^7.12.1"
   }
 }
