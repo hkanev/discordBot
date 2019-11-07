@@ -16,11 +16,9 @@ var chars = null;
 
 async function getChars(){
   let response =  await dbClient.query('SELECT * FROM public.chars');
+  dbClient.end()
   return response.rows;
 }
-
-
-var chars = getChars();
 
 client.on('ready', async () => {
   console.log(`Logged in as ${client.user.tag}!`)
@@ -42,6 +40,7 @@ client.on('message', async msg => {
             msg.reply(`Saved!`).then(msg => {
               msg.delete(1000);
             });
+            dbClient.end();
           }
       );
     }
