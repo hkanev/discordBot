@@ -31,8 +31,8 @@ client.on('ready', async () => {
 })
 
 client.on('message', async msg => {
-  if(msg.channel.name === 'chars'){
-    if (msg.content.toLowerCase().includes('!set')) {
+  if(msg.channel.name === 'bot'){
+    if (msg.content.toLowerCase().includes('set')) {
       let [command, char, labor] = msg.content.split(' ');
       char = char.toLowerCase();
 
@@ -43,19 +43,31 @@ client.on('message', async msg => {
       const db = await pool.connect();
       var query = "UPDATE public.chars SET labor = ($1), updated_at = ($2) WHERE system_name = ($3)";
       await db.query(query, [labor, moment(), char]).then(async () => {
+            const embed = new Discord.RichEmbed()
+                .setTitle("Character summary")
+                .setColor(0x00AE86)
+            var chars = await getChars();
+            chars.forEach(char => {
+              var diffMins = moment().diff(moment(char.updated_at), 'minutes');
+              var accumulatedIterations = Math.round(diffMins / 5);
+              var accumulatedLabor =  parseInt(char.labor) + (10 * accumulatedIterations);
+              accumulatedLabor = accumulatedLabor > 5000  ? 5000 : accumulatedLabor;
+              embed.addField(char.name, `Generated Labor: ${accumulatedLabor}`, true)
+            })
+
             await msg.channel.bulkDelete(10);
-            msg.reply(`Saved!`).then(msg => {
-              msg.delete(1000);
-            });
+            msg.channel.send({embed});
           }
       );
       db.release();
     }
-    if(msg.content === '!status'){
+    if(msg.content === 'refresh'){
       const embed = new Discord.RichEmbed()
           .setTitle("Character summary")
           .setColor(0x00AE86)
+
       var chars = await getChars();
+
       chars.forEach(char => {
         var diffMins = moment().diff(moment(char.updated_at), 'minutes');
         var accumulatedIterations = Math.round(diffMins / 5);
@@ -65,7 +77,7 @@ client.on('message', async msg => {
       })
 
       await msg.channel.bulkDelete(10);
-      msg.reply({embed});
+      msg.channel.send({embed});
     }
   }
 })
