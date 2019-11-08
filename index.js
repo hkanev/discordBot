@@ -2,23 +2,29 @@ require('dotenv').config()
 const Discord = require('discord.js')
 const client = new Discord.Client()
 var moment = require('moment');
-const { Client } = require('pg');
+const { Pool } = require('pg');
 var _ = require('lodash');
 
-const dbClient = new Client({
+let pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: true,
 });
 
-dbClient.connect();
 
 var chars = null;
 
 async function getChars(){
-  let response =  await dbClient.query('SELECT * FROM public.chars');
-  dbClient.end()
+  const db = await pool.connect();
+  try{
+    var response =  await db.query('SELECT * FROM public.chars');
+  } catch (e) {
+    console.log(e);
+  }
+
+  db.release();
   return response.rows;
 }
+
 
 client.on('ready', async () => {
   console.log(`Logged in as ${client.user.tag}!`)
@@ -34,21 +40,21 @@ client.on('message', async msg => {
         labor = 0;
       }
 
+      const db = await pool.connect();
       var query = "UPDATE public.chars SET labor = ($1), updated_at = ($2) WHERE system_name = ($3)";
-      await dbClient.query(query, [labor, moment(), char]).then(async () => {
+      await db.query(query, [labor, moment(), char]).then(async () => {
             await msg.channel.bulkDelete(10);
             msg.reply(`Saved!`).then(msg => {
               msg.delete(1000);
             });
-            dbClient.end();
           }
       );
+      db.release();
     }
     if(msg.content === '!status'){
       const embed = new Discord.RichEmbed()
           .setTitle("Character summary")
           .setColor(0x00AE86)
-
       var chars = await getChars();
       chars.forEach(char => {
         var diffMins = moment().diff(moment(char.updated_at), 'minutes');
